@@ -64,5 +64,6 @@ workflows:
             alias: test-detect-os
             parameters:
               executor: [cimg, mac, alpine, windows, ubuntu]
+          requires: [shellcheck/check]
 
 # VS Code Extension Version: 1.2.0
