@@ -66,13 +66,21 @@ workflows:
           matrix:
             alias: bats-detect-os
             parameters:
-              exec_environment: [cimg, mac, alpine, windows, ubuntu]
+              exec_environment: [cimg, mac, ubuntu]
           requires: [shellcheck/check]
+      - bats/run:
+          name: bats/run-alpine
+          formatter: junit
+          path: .
+          exec_environment: alpine
+          requires: [shellcheck/check]
+          pre-steps:
+            - run: apk add git sudo
       - detect-os:
           matrix:
             alias: test-detect-os
             parameters:
               executor: [cimg, mac, alpine, windows, ubuntu]
-          requires: [shellcheck/check, bats-detect-os]
+          requires: [shellcheck/check, bats-detect-os, bats/run-alpine]
 
 # VS Code Extension Version: 1.2.0
