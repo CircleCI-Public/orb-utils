@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   shellcheck: circleci/shellcheck@3
+  bats: circleci/bats@1
 
 executors:
   cimg:
@@ -59,11 +60,19 @@ workflows:
     jobs:
       - shellcheck/check:
           shell: sh
+      - bats/run:
+          formatter: junit
+          path: .
+          matrix:
+            alias: bats-detect-os
+            parameters:
+              exec_environment: [cimg, mac, alpine, windows, ubuntu]
+          requires: [shellcheck/check]
       - detect-os:
           matrix:
             alias: test-detect-os
             parameters:
               executor: [cimg, mac, alpine, windows, ubuntu]
-          requires: [shellcheck/check]
+          requires: [shellcheck/check, bats-detect-os]
 
 # VS Code Extension Version: 1.2.0
