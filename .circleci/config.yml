@@ -24,6 +24,18 @@ executors:
       image: ubuntu-2204:current
 
 jobs:
+  bats-alpine:
+    executor: alpine
+    steps:
+      - checkout
+      - run:
+          name: Install and run BATS
+          command: |
+            apk add bats
+            mkdir /tmp/bats
+            bats --formatter tap --report-formatter junit --output /tmp/bats --timing /root/project
+      - store_test_results:
+          path: /tmp/bats
   detect-os:
     parameters:
       executor:
@@ -66,21 +78,15 @@ workflows:
           matrix:
             alias: bats-detect-os
             parameters:
-              exec_environment: [cimg, mac, ubuntu]
+              exec_environment: [cimg, mac]
           requires: [shellcheck/check]
-      - bats/run:
-          name: bats/run-alpine
-          formatter: junit
-          path: .
-          exec_environment: alpine
+      - bats-alpine:
           requires: [shellcheck/check]
-          pre-steps:
-            - run: apk add git sudo
       - detect-os:
           matrix:
             alias: test-detect-os
             parameters:
               executor: [cimg, mac, alpine, windows, ubuntu]
-          requires: [shellcheck/check, bats-detect-os, bats/run-alpine]
+          requires: [shellcheck/check, bats-detect-os, bats-alpine]
 
 # VS Code Extension Version: 1.2.0
