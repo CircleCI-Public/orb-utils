@@ -2,7 +2,6 @@ version: 2.1
 
 orbs:
   shellcheck: circleci/shellcheck@3
-  bats: circleci/bats@1
 
 executors:
   cimg:
@@ -58,6 +57,8 @@ jobs:
 workflows:
   test:
     jobs:
+      - shellcheck/check:
+          shell: sh
       - detect-os:
           matrix:
             alias: test-detect-os
