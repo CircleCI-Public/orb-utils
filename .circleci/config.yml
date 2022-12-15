@@ -1,0 +1,92 @@
+version: 2.1
+
+orbs:
+  shellcheck: circleci/shellcheck@3
+  bats: circleci/bats@1
+
+executors:
+  cimg:
+    docker:
+      - image: cimg/base:stable
+  mac:
+    macos:
+      xcode: 14.1.0
+  alpine:
+    docker:
+      - image: alpine:latest
+  windows:
+    machine:
+      image: windows-server-2022-gui:current
+      resource_class: windows.medium
+      shell: bash.exe
+  ubuntu:
+    machine:
+      image: ubuntu-2204:current
+
+jobs:
+  bats-alpine:
+    executor: alpine
+    steps:
+      - checkout
+      - run:
+          name: Install and run BATS
+          command: |
+            apk add bats
+            mkdir /tmp/bats
+            bats --formatter tap --report-formatter junit --output /tmp/bats --timing /root/project
+      - store_test_results:
+          path: /tmp/bats
+  detect-os:
+    parameters:
+      executor:
+        type: executor
+    executor: << parameters.executor >>
+    steps:
+      - checkout
+      - run:
+          name: Check if OS is detected correctly
+          command: |
+            # Simulate how cURL fetches the script.
+            detect_os_script="$(cat "${CIRCLE_WORKING_DIRECTORY/\~/$HOME}"/detect_os.sh)"
+
+            # Evaluate the script and invoke the function.
+            eval "$detect_os_script"
+
+            # Helper function to print the result of the test.
+            print_success() { printf '%s\n' "$ORB_UTILS_PLATFORM was detected correctly!"; }
+
+            # This test relies on $CIRCLE_JOB to check if the OS is detected correctly.
+            # If the executor or job name is changed, this test must be updated or it will fail.
+            executor="$(printf '%s' "$CIRCLE_JOB" | sed 's/detect-os-\(.*\)/\1/g')"
+            case "$executor" in
+              windows) [ "$ORB_UTILS_PLATFORM" = "windows" ] && print_success ;;
+              ubuntu) [ "$ORB_UTILS_PLATFORM" = "ubuntu" ] && print_success ;;
+              mac) [ "$ORB_UTILS_PLATFORM" = "macos" ] && print_success ;;
+              cimg) [ "$ORB_UTILS_PLATFORM" = "ubuntu" ] && print_success ;;
+              alpine) [ "$ORB_UTILS_PLATFORM" = "alpine" ] && print_success ;;
+              *) { printf '%s\n' "Failed to detect OS." "Expected: $executor" "Actual: $ORB_UTILS_PLATFORM"; exit 1; } ;;
+            esac
+
+workflows:
+  test:
+    jobs:
+      - shellcheck/check:
+          shell: sh
+      - bats/run:
+          formatter: junit
+          path: .
+          matrix:
+            alias: bats-detect-os
+            parameters:
+              exec_environment: [cimg, mac]
+          requires: [shellcheck/check]
+      - bats-alpine:
+          requires: [shellcheck/check]
+      - detect-os:
+          matrix:
+            alias: test-detect-os
+            parameters:
+              executor: [cimg, mac, alpine, windows, ubuntu]
+          requires: [shellcheck/check, bats-detect-os, bats-alpine]
+
+# VS Code Extension Version: 1.2.0
