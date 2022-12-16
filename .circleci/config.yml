@@ -1,8 +1,13 @@
 version: 2.1
 
+filters: &filters
+  tags:
+    only: /.*/
+
 orbs:
   shellcheck: circleci/shellcheck@3
   bats: circleci/bats@1
+  gh: circleci/github-cli@dev:alpha
 
 executors:
   cimg:
@@ -22,6 +27,22 @@ executors:
   ubuntu:
     machine:
       image: ubuntu-2204:current
+
+commands:
+  resolve-release-script:
+    description: "Resolve the file to upload to the GitHub Release."
+    steps:
+      - run:
+          name: Resolve release script
+          command: |
+            # Get script name from tag.
+            # See more: regexr.com/74m6k
+            script_name="$(printf '%s' "$CIRCLE_TAG" | sed -E 's/(.*)_v[0-9]+.[0-9]+.[0-9]+/\1/')"
+            [ -z "$script_name" ] && { printf '%s\n' "Failed to get the script name from tag."; exit 1; }
+
+            readonly base_dir="${CIRCLE_WORKING_DIRECTORY/\~/$HOME}"
+            readonly script="$base_dir/$script_name.sh"
+            printf '%s\n' "export SCRIPT=$script" >> "$BASH_ENV"
 
 jobs:
   bats-alpine:
@@ -47,7 +68,7 @@ jobs:
           name: Check if OS is detected correctly
           command: |
             # Simulate how cURL fetches the script.
-            detect_os_script="$(cat "${CIRCLE_WORKING_DIRECTORY/\~/$HOME}"/detect_os.sh)"
+            detect_os_script="$(cat "${CIRCLE_WORKING_DIRECTORY/\~/$HOME}"/detect-os.sh)"
 
             # Evaluate the script and invoke the function.
             eval "$detect_os_script"
@@ -72,6 +93,7 @@ workflows:
     jobs:
       - shellcheck/check:
           shell: sh
+          filters: *filters
       - bats/run:
           formatter: junit
           path: .
@@ -80,13 +102,29 @@ workflows:
             parameters:
               exec_environment: [cimg, mac]
           requires: [shellcheck/check]
+          filters: *filters
       - bats-alpine:
           requires: [shellcheck/check]
+          filters: *filters
       - detect-os:
           matrix:
             alias: test-detect-os
             parameters:
               executor: [cimg, mac, alpine, windows, ubuntu]
           requires: [shellcheck/check, bats-detect-os, bats-alpine]
+          filters: *filters
+      - gh/upload:
+          files: "$SCRIPT"
+          tag: "$CIRCLE_TAG"
+          token: "GHI_TOKEN"
+          context: "orb-publisher"
+          pre-steps:
+            - resolve-release-script
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*_v[0-9]+.[0-9]+.[0-9]+/
+          requires: [test-detect-os]
 
-# VS Code Extension Version: 1.2.0
+# VS Code Extension Version: 1.4.0

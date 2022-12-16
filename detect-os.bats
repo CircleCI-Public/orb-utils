@@ -13,7 +13,7 @@ setup() {
 }
 
 @test "detect_os - Detects the OS" {
-  detect_os_script="$(cat "./detect_os.sh")"
+  detect_os_script="$(cat "./detect-os.sh")"
   run eval "$detect_os_script"
   printf '%s\n' "Expected: $PLATFORM" "Actual: $output"
   [ "$status" -eq 0 ]
@@ -22,7 +22,7 @@ setup() {
 
 @test "detect_os - Print verbose output if \"ORB_UTILS_DETECT_OS_VERBOSE\" is true" {
   local expected="$(printf '%s\n' "OS name: $OS_NAME" "Platform: $PLATFORM" "$PLATFORM")"
-  local detect_os_script="$(cat "./detect_os.sh")"
+  local detect_os_script="$(cat "./detect-os.sh")"
   ORB_UTILS_DETECT_OS_VERBOSE=true
   run eval "$detect_os_script"
   printf '%s\n' "Expected: $expected" "Actual: $output"
@@ -32,7 +32,7 @@ setup() {
 
 @test "detect_os - Doesn't invoke the command if \"ORB_UTILS_DETECT_OS_INVOKE\" is false" {
   ORB_UTILS_DETECT_OS_INVOKE=false
-  local detect_os_script="$(cat "./detect_os.sh")"
+  local detect_os_script="$(cat "./detect-os.sh")"
   run eval "$detect_os_script"
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
