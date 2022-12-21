@@ -66,27 +66,18 @@ jobs:
               alpine) [ "$ORB_UTILS_PLATFORM" = "alpine" ] && print_success ;;
               *) { printf '%s\n' "Failed to detect OS." "Expected: $executor" "Actual: $ORB_UTILS_PLATFORM"; exit 1; } ;;
             esac
-
-workflows:
   test:
+    parameters:
+      my-executor-name:
+        type: string
+        default: cimg
+    executor:
+      name: << parameters.my-executor-name >>
+    steps:
+      - run: 'echo "Hello, World!"'
+workflows:
+  test-workflow:
     jobs:
-      - shellcheck/check:
-          shell: sh
-      - bats/run:
-          formatter: junit
-          path: .
-          matrix:
-            alias: bats-detect-os
-            parameters:
-              exec_environment: [cimg, mac]
-          requires: [shellcheck/check]
-      - bats-alpine:
-          requires: [shellcheck/check]
-      - detect-os:
-          matrix:
-            alias: test-detect-os
-            parameters:
-              executor: [cimg, mac, alpine, windows, ubuntu]
-          requires: [shellcheck/check, bats-detect-os, bats-alpine]
+      - test
 
-# VS Code Extension Version: 1.2.0
+# VS Code Extension Version: 1.4.0
