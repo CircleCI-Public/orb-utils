@@ -7,7 +7,7 @@ filters: &filters
 orbs:
   shellcheck: circleci/shellcheck@3
   bats: circleci/bats@1
-  gh: circleci/github-cli@dev:alpha
+  gh: circleci/github-cli@2.1
 
 executors:
   cimg:
