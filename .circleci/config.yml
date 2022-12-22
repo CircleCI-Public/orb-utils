@@ -119,6 +119,7 @@ workflows:
           token: "GHI_TOKEN"
           context: "orb-publisher"
           pre-steps:
+            - run: echo "export GH_TOKEN=$GHI_TOKEN" >> "$BASH_ENV"
             - resolve-release-script
           filters:
             branches:
